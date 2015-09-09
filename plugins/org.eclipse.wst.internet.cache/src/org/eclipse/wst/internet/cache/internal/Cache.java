@@ -63,10 +63,8 @@ public class Cache
   private static final String CACHE_EXTENSION = ".cache";
   private static final String CACHE_PREFIX = "wtpcache";
   private static final String CACHE_SUFFIX = null;
-  /**
-   * The default timeout for a cache entry is 1 day.
-   */
-  private static final long TIMEOUT = 86400000;
+  
+  private static final int IGNORE_NOCACHE_DURATION = 1000*60*10;
 	
   /**
    * The one and only instance of the cache.
@@ -206,7 +204,7 @@ public class Cache
 			  conn = url.openConnection();
 		  }
 		  // Determine if this resource can be cached.
-		  if(conn.getUseCaches())
+		  if(CachePlugin.getDefault().isIgnoreNoCacheHeader() || conn.getUseCaches())
 		  {
 			is = URIHelper.getInputStream(actualUri, 0);
 	    	if (is == null) {
@@ -233,7 +231,8 @@ public class Cache
 		    long expiration = conn.getExpiration();
 			if(expiration == 0)
 			{
-			  expiration = System.currentTimeMillis() + TIMEOUT;
+				long timeout = conn.getUseCaches() ? getTimeout() : IGNORE_NOCACHE_DURATION;
+				expiration = System.currentTimeMillis() + timeout;
 			}
 		    cacheEntry = new CacheEntry(uri, fileName, lastModified, expiration);
 		    cache.put(uri,cacheEntry);
@@ -300,7 +299,8 @@ public class Cache
 			long expiration = conn.getExpiration();
 		    if(expiration == 0)
 			{
-			  expiration = System.currentTimeMillis() + TIMEOUT;
+				long timeout = conn.getUseCaches() ? getTimeout() : IGNORE_NOCACHE_DURATION;
+				expiration = System.currentTimeMillis() + timeout;
 			}
 			
 		    is = conn.getInputStream();
@@ -331,7 +331,8 @@ public class Cache
 			long expiration = conn.getExpiration();
 			if(expiration == 0)
 			{
-			  expiration = System.currentTimeMillis() + TIMEOUT;
+				long timeout = conn.getUseCaches() ? getTimeout() : IGNORE_NOCACHE_DURATION;
+				expiration = System.currentTimeMillis() + timeout;
 			}
 			cacheEntry.setExpiration(expiration);
 		  }
@@ -367,6 +368,10 @@ public class Cache
 		  }
 	  }
 	  return cacheEntry;
+  }
+  
+  private long getTimeout() {
+	  return CachePlugin.getDefault().getCacheTimeout();
   }
   
   /**
